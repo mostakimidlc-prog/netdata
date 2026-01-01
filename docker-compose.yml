@@ -1,0 +1,35 @@
+services:
+  netdata:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: netdata-prod
+    hostname: devops-lab-monitor
+    ports:
+      - "19999:19999"
+    restart: unless-stopped
+    cap_add:
+      - SYS_PTRACE
+      - NET_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    volumes:
+      - netdataconfig:/etc/netdata
+      - netdatalib:/var/lib/netdata
+      - netdatacache:/var/cache/netdata
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/group:/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.50'
+
+volumes:
+  netdataconfig:
+  netdatalib:
+  netdatacache:

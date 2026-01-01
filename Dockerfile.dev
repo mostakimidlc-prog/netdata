@@ -1,0 +1,3 @@
+FROM netdata/netdata:latest
+# Add custom health checks or plugins here
+EXPOSE 19999
