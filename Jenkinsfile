@@ -45,26 +45,21 @@ pipeline {
                     echo 'Stage 3/8: Testing Docker image'
                     echo '========================================='
                     sh """
-                        # Stop any existing test container
                         docker stop netdata-test-${BUILD_NUMBER} 2>/dev/null || true
                         docker rm netdata-test-${BUILD_NUMBER} 2>/dev/null || true
                         
-                        # Run container for testing
                         docker run -d --name netdata-test-${BUILD_NUMBER} \
                           -p 19998:19999 \
                           ${DOCKER_IMAGE}:${DOCKER_TAG}
                         
-                        # Wait for startup
                         echo "Waiting for Netdata to start..."
                         sleep 30
                         
-                        # Test API
                         echo "Testing API endpoint..."
                         curl -f http://localhost:19998/api/v1/info || exit 1
                         
                         echo "✅ Image test passed!"
                         
-                        # Cleanup
                         docker stop netdata-test-${BUILD_NUMBER}
                         docker rm netdata-test-${BUILD_NUMBER}
                     """
@@ -74,22 +69,24 @@ pipeline {
         
         stage('Push to Docker Hub') {
             steps {
-                script {
-                    echo '========================================='
-                    echo 'Stage 4/8: Pushing to Docker Hub'
-                    echo '========================================='
-                    sh """
-                        echo "Logging in to Docker Hub..."
-                        echo \${DOCKER_HUB_CREDS_PSW} | docker login -u \${DOCKER_HUB_CREDS_USR} --password-stdin
-                        
-                        echo "Pushing ${DOCKER_IMAGE}:${DOCKER_TAG}..."
-                        docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
-                        
-                        echo "Pushing ${DOCKER_IMAGE}:latest..."
-                        docker push ${DOCKER_IMAGE}:latest
-                        
-                        echo "✅ Images pushed successfully!"
-                    """
+                retry(3) {
+                    script {
+                        echo '========================================='
+                        echo 'Stage 4/8: Pushing to Docker Hub'
+                        echo '========================================='
+                        sh """
+                            echo "Logging in to Docker Hub..."
+                            echo \${DOCKER_HUB_CREDS_PSW} | docker login -u \${DOCKER_HUB_CREDS_USR} --password-stdin
+                            
+                            echo "Pushing ${DOCKER_IMAGE}:${DOCKER_TAG}..."
+                            docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
+                            
+                            echo "Pushing ${DOCKER_IMAGE}:latest..."
+                            docker push ${DOCKER_IMAGE}:latest
+                            
+                            echo "✅ Images pushed successfully!"
+                        """
+                    }
                 }
             }
         }
@@ -141,11 +138,9 @@ pipeline {
                     echo 'Stage 7/8: Verifying deployment'
                     echo '========================================='
                     sh """
-                        # Check pods
                         echo "Checking pods..."
                         kubectl get pods -n ${K8S_NAMESPACE}
                         
-                        # Wait for pods to be ready
                         echo "Waiting for pods to be ready..."
                         kubectl wait --for=condition=ready pod -l app=netdata -n ${K8S_NAMESPACE} --timeout=300s
                         
@@ -162,11 +157,9 @@ pipeline {
                     echo 'Stage 8/8: Running health check'
                     echo '========================================='
                     sh """
-                        # Get pod IP
                         POD_IP=\$(kubectl get pod -n ${K8S_NAMESPACE} -l app=netdata -o jsonpath='{.items[0].status.podIP}')
                         echo "Testing API at pod IP: \$POD_IP"
                         
-                        # Test API (with retries)
                         for i in {1..5}; do
                             if curl -f http://\$POD_IP:19999/api/v1/info; then
                                 echo "✅ Health check passed!"
@@ -177,7 +170,6 @@ pipeline {
                             fi
                         done
                         
-                        # Show final status
                         echo ""
                         echo "Final deployment status:"
                         kubectl get all -n ${K8S_NAMESPACE}
@@ -196,11 +188,13 @@ pipeline {
                 sh """
                     echo "Build Number: ${BUILD_NUMBER}"
                     echo "Image: ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                    echo ""
                     echo "Deployment Details:"
                     kubectl get all -n ${K8S_NAMESPACE}
                     echo ""
-                    echo "Access Netdata at: http://localhost:30199"
-                    echo "(Use port-forward if needed)"
+                    echo "Access Netdata:"
+                    echo "  - Via NodePort: http://\$(minikube ip):30199"
+                    echo "  - Via Port Forward: kubectl port-forward -n ${K8S_NAMESPACE} svc/netdata-service 30199:19999"
                 """
             }
         }
