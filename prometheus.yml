@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'netdata'
+    metrics_path: '/api/v1/allmetrics'
+    params:
+      format: [prometheus]
+    static_configs:
+      - targets: ['netdata:19999']
+        labels:
+          instance: 'netdata-local'
