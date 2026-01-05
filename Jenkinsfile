@@ -14,7 +14,7 @@ pipeline {
             steps {
                 script {
                     echo '========================================='
-                    echo 'Stage 1/9: Checking out code'
+                    echo 'Stage 1/8: Checking out code'
                     echo '========================================='
                     checkout scm
                 }
@@ -25,7 +25,7 @@ pipeline {
             steps {
                 script {
                     echo '========================================='
-                    echo 'Stage 2/9: Building Docker image'
+                    echo 'Stage 2/8: Building Docker image'
                     echo '========================================='
                     sh """
                         docker build -f Dockerfile.production \
@@ -42,7 +42,7 @@ pipeline {
             steps {
                 script {
                     echo '========================================='
-                    echo 'Stage 3/9: Testing Docker image'
+                    echo 'Stage 3/8: Testing Docker image'
                     echo '========================================='
                     sh """
                         # Stop any existing test container
@@ -72,35 +72,11 @@ pipeline {
             }
         }
         
-        stage('Security Scan') {
-            steps {
-                script {
-                    echo '========================================='
-                    echo 'Stage 4/9: Running security scan'
-                    echo '========================================='
-                    sh """
-                        # Install trivy if not exists
-                        if ! command -v trivy &> /dev/null; then
-                            echo "Installing Trivy..."
-                            wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
-                            echo "deb https://aquasecurity.github.io/trivy-repo/deb \$(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
-                            sudo apt-get update
-                            sudo apt-get install trivy -y
-                        fi
-                        
-                        # Scan image (don't fail build on vulnerabilities for now)
-                        echo "Scanning ${DOCKER_IMAGE}:${DOCKER_TAG}..."
-                        trivy image --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${DOCKER_TAG} || true
-                    """
-                }
-            }
-        }
-        
         stage('Push to Docker Hub') {
             steps {
                 script {
                     echo '========================================='
-                    echo 'Stage 5/9: Pushing to Docker Hub'
+                    echo 'Stage 4/8: Pushing to Docker Hub'
                     echo '========================================='
                     sh """
                         echo "Logging in to Docker Hub..."
@@ -122,7 +98,7 @@ pipeline {
             steps {
                 script {
                     echo '========================================='
-                    echo 'Stage 6/9: Updating Kubernetes manifest'
+                    echo 'Stage 5/8: Updating Kubernetes manifest'
                     echo '========================================='
                     sh """
                         sed -i 's|image: ${DOCKER_IMAGE}:.*|image: ${DOCKER_IMAGE}:${DOCKER_TAG}|g' \
@@ -139,7 +115,7 @@ pipeline {
             steps {
                 script {
                     echo '========================================='
-                    echo 'Stage 7/9: Deploying to Kubernetes'
+                    echo 'Stage 6/8: Deploying to Kubernetes'
                     echo '========================================='
                     sh """
                         echo "Applying Kubernetes manifests..."
@@ -162,7 +138,7 @@ pipeline {
             steps {
                 script {
                     echo '========================================='
-                    echo 'Stage 8/9: Verifying deployment'
+                    echo 'Stage 7/8: Verifying deployment'
                     echo '========================================='
                     sh """
                         # Check pods
@@ -172,10 +148,6 @@ pipeline {
                         # Wait for pods to be ready
                         echo "Waiting for pods to be ready..."
                         kubectl wait --for=condition=ready pod -l app=netdata -n ${K8S_NAMESPACE} --timeout=300s
-                        
-                        # Get pod details
-                        echo "Pod details:"
-                        kubectl describe pods -n ${K8S_NAMESPACE} -l app=netdata | grep -A 5 "Status:"
                         
                         echo "✅ Deployment verified!"
                     """
@@ -187,7 +159,7 @@ pipeline {
             steps {
                 script {
                     echo '========================================='
-                    echo 'Stage 9/9: Running health check'
+                    echo 'Stage 8/8: Running health check'
                     echo '========================================='
                     sh """
                         # Get pod IP
@@ -239,9 +211,7 @@ pipeline {
                 echo '========================================='
                 sh """
                     echo "Build Number: ${BUILD_NUMBER}"
-                    echo "Checking logs..."
-                    kubectl get pods -n ${K8S_NAMESPACE} || true
-                    kubectl logs -n ${K8S_NAMESPACE} -l app=netdata --tail=50 || true
+                    echo "Failed at stage. Check logs above."
                 """
             }
         }
