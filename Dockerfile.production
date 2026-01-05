@@ -1,0 +1,18 @@
+FROM netdata/netdata:latest
+
+# Add custom configurations
+LABEL maintainer="mostakimidlc-prog"
+LABEL version="1.0"
+LABEL description="Netdata Production Build"
+
+# Environment variables
+ENV DO_NOT_TRACK=1
+
+# Health check
+HEALTHCHECK --interval=60s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:19999/api/v1/info || exit 1
+
+# Expose default port
+EXPOSE 19999
+
+# Run as non-root user (already handled by base image)
