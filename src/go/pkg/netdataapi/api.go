@@ -185,3 +185,24 @@ func (a *API) CONFIGDELETE(id string) {
 func (a *API) CONFIGSTATUS(id, status string) {
 	_, _ = a.Write([]byte("CONFIG " + id + " status " + status + "\n\n"))
 }
+
+// FUNCTIONGLOBAL registers a global function with Netdata.
+// Format: FUNCTION GLOBAL "<name>" <timeout> "<help>" "<tags>" <access> <priority> <version>
+func (a *API) FUNCTIONGLOBAL(opts FunctionGlobalOpts) {
+	_, _ = a.Write([]byte("FUNCTION GLOBAL \"" +
+		opts.Name + "\" " +
+		strconv.Itoa(opts.Timeout) + " \"" +
+		opts.Help + "\" \"" +
+		opts.Tags + "\" " +
+		opts.Access + " " +
+		strconv.Itoa(opts.Priority) + " " +
+		strconv.Itoa(opts.Version) + "\n\n"))
+}
+
+// FUNCTIONREMOVE removes a function from Netdata.
+// NOTE: This is a no-op placeholder - Netdata core does not yet support function removal.
+// When Netdata implements this, the protocol format will be added here.
+func (a *API) FUNCTIONREMOVE(name string) {
+	// TODO: Implement when Netdata core supports function removal
+	// For now, this is intentionally a no-op
+}

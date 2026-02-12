@@ -271,7 +271,7 @@ Suggests: %{name}-plugin-freeipmi = %{version}
 Suggests: %{name}-plugin-cups = %{version}
 %endif
 Recommends: %{name}-plugin-systemd-journal = %{version}
-Recommends: %{name}-plugin-systmed-units = %{version}
+Recommends: %{name}-plugin-systemd-units = %{version}
 Recommends: %{name}-plugin-network-viewer = %{version}
 %else
 Requires: %{name}-plugin-systemd-journal = %{version}
@@ -705,6 +705,10 @@ rm -rf "${RPM_BUILD_ROOT}"
 # systemd-journal belongs to a different sub-package
 %exclude %{_libexecdir}/%{name}/plugins.d/systemd-journal.plugin
 
+# otel-signal-viewer belongs to a different sub-package
+%exclude %{_libexecdir}/%{name}/plugins.d/otel-signal-viewer-plugin
+%exclude %{_libdir}/%{name}/conf.d/otel-signal-viewer.yaml
+
 # xenstat belongs to a different sub-package
 %exclude %{_libexecdir}/%{name}/plugins.d/xenstat.plugin
 
@@ -808,7 +812,7 @@ Summary: The eBPF metrics collection plugin for the Netdata Agent
 Group: Applications/System
 Requires: %{name} = %{version}
 Conflicts: %{name} < %{version}
-%if 0%{?centos_ver} != 7
+%if 0%{?centos_ver} != 7 && 0%{?amazon_linux} != 2
 Recommends: %{name}-plugin-apps = %{version}
 Recommends: %{name}-ebpf-legacy-code >= %{version}
 %else
@@ -3121,6 +3125,18 @@ Requires(pre): %{name}-user >= %{version}
 # CAP_DAC_READ_SEARCH required for data collection.
 %caps(cap_dac_read_search=ep) %attr(0750,root,netdata) %{_libexecdir}/%{name}/plugins.d/debugfs.plugin
 
+%package plugin-journal-viewer
+Summary: Transitional dummy package
+Group: Applications/System
+Requires: %{name}-plugin-systemd-journal
+
+%description plugin-journal-viewer
+ This package simply ensures a clean upgrade to the renamed
+ netdata-plugin-systemd-journal package. Once that package is installed,
+ you can safely remove this one.
+
+%files plugin-journal-viewer
+
 %package plugin-systemd-journal
 Summary: The systemd-journal plugin for the Netdata Agent
 Group: Applications/System
@@ -3182,7 +3198,7 @@ Group: Applications/System
 Requires: %{name} = %{version}
 Conflicts: %{name} < %{version}
 %if 0%{?_have_ebpf}
-%if 0%{?centos_ver} != 7
+%if 0%{?centos_ver} != 7 && 0%{?amazon_linux} != 2
 Recommends: %{name}-plugin-ebpf = %{version}
 %else
 Requires: %{name}-plugin-ebpf = %{version}
@@ -3222,6 +3238,7 @@ Requires(pre): %{name}-user >= %{version}
 Summary: The Open Telemetry plugin for the Netdata Agent
 Group: Applications/System
 Requires: %{name} >= %{version}
+Requires: %{name}-plugin-otel-signal-viewer = %{version}
 Conflicts: %{name} < %{version}
 %if ! %{_have_sysuser}
 Requires(pre): %{name}-user >= %{version}
@@ -3235,6 +3252,27 @@ Requires(pre): %{name}-user >= %{version}
 %files plugin-otel
 %defattr(0750,root,netdata,0750)
 %attr(0750,root,netdata) %{_libexecdir}/%{name}/plugins.d/otel-plugin
+%endif
+
+%if %{_have_rust}
+%package plugin-otel-signal-viewer
+Summary: The OTel signal viewer plugin for the Netdata Agent
+Group: Applications/System
+Requires: %{name} = %{version}
+Conflicts: %{name} < %{version}
+%if ! %{_have_sysuser}
+Requires(pre): %{name}-user >= %{version}
+%endif
+
+%description plugin-otel-signal-viewer
+ This plugin provides OTel signal viewing and querying functionality
+ with histogram analysis and faceted search capabilities for the Netdata Agent.
+
+%files plugin-otel-signal-viewer
+%defattr(0750,root,netdata,0750)
+# CAP_DAC_READ_SEARCH required for reading journal files.
+%caps(cap_dac_read_search=ep) %attr(0750,root,netdata) %{_libexecdir}/%{name}/plugins.d/otel-signal-viewer-plugin
+%attr(0640,root,netdata) %{_libdir}/%{name}/conf.d/otel-signal-viewer.yaml
 %endif
 
 %package user
@@ -3280,6 +3318,9 @@ done
 %attr(0644,root,root) %{_sysusersdir}/%{name}.conf
 
 %changelog
+* Tue Feb 10 2026 Austin Hemmelgarn <austin@netdata.cloud> 0.0.0-38
+- Add new otel-signal-viewer plugin
+- Add back systemd-journal plugin with journal-viewer plugin as a transitional package
 * Tue Nov 11 2025 Austin Hemmelgarn <austin@netdata.cloud> 0.0.0-37
 - Update to use sysusers infrastructure when available.
 * Fri Oct 24 2025 Austin Hemmelgarn <austin@netdata.cloud> 0.0.0-36

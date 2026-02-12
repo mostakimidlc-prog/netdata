@@ -425,6 +425,7 @@ set(CPACK_COMPONENT_PLUGIN-OTEL_DESCRIPTION
 
 set(CPACK_DEBIAN_PLUGIN-OTEL_PACKAGE_NAME "netdata-plugin-otel")
 set(CPACK_DEBIAN_PLUGIN-OTEL_PACKAGE_SECTION "net")
+set(CPACK_DEBIAN_PLUGIN-OTEL_PACKAGE_DEPENDS "netdata-plugin-otel-signal-viewer (= ${CPACK_PACKAGE_VERSION})")
 set(CPACK_DEBIAN_PLUGIN-OTEL_PACKAGE_CONFLICTS "netdata (<< 1.40)")
 set(CPACK_DEBIAN_PLUGIN-OTEL_PACKAGE_PREDEPENDS "netdata-user")
 
@@ -432,6 +433,25 @@ set(CPACK_DEBIAN_PLUGIN-OTEL_PACKAGE_CONTROL_EXTRA
 	  "${PKG_FILES_PATH}/deb/plugin-otel/postinst")
 
 set(CPACK_DEBIAN_PLUGIN-OTEL_DEBUGINFO_PACKAGE Off)
+
+#
+# otel-signal-viewer
+#
+
+set(CPACK_COMPONENT_PLUGIN-OTEL-SIGNAL-VIEWER_DEPENDS "netdata")
+set(CPACK_COMPONENT_PLUGIN-OTEL-SIGNAL-VIEWER_DESCRIPTION
+		"The OTel signal viewer plugin for the Netdata Agent
+ This plugin provides OTel signal viewing and querying functionality
+ with histogram analysis and faceted search capabilities.")
+
+set(CPACK_DEBIAN_PLUGIN-OTEL-SIGNAL-VIEWER_PACKAGE_NAME "netdata-plugin-otel-signal-viewer")
+set(CPACK_DEBIAN_PLUGIN-OTEL-SIGNAL-VIEWER_PACKAGE_SECTION "net")
+set(CPACK_DEBIAN_PLUGIN-OTEL-SIGNAL-VIEWER_PACKAGE_PREDEPENDS "libcap2-bin, adduser")
+
+set(CPACK_DEBIAN_PLUGIN-OTEL-SIGNAL-VIEWER_PACKAGE_CONTROL_EXTRA
+		"${PKG_FILES_PATH}/deb/plugin-otel-signal-viewer/postinst")
+
+set(CPACK_DEBIAN_PLUGIN-OTEL-SIGNAL-VIEWER_DEBUGINFO_PACKAGE Off)
 
 #
 # nfacct.plugin
@@ -536,6 +556,16 @@ set(CPACK_DEBIAN_PLUGIN-SYSTEMD-JOURNAL_PACKAGE_CONTROL_EXTRA
 
 set(CPACK_DEBIAN_PLUGIN-SYSTEMD-JOURNAL_DEBUGINFO_PACKAGE On)
 
+set(CPACK_COMPONENT_PLUGIN-JOURNAL-VIEWER_DESCRIPTION
+		"Transitional dummy package.
+ This package simply ensures a clean upgrade to the renamed
+ netdata-plugin-systemd-journal package. Once that package is installed,
+ you can safely remove this one.")
+
+set(CPACK_DEBIAN_PLUGIN-JOURNAL-VIEWER_PACKAGE_NAME "netdata-plugin-journal-viewer")
+set(CPACK_DEBIAN_PLUGIN-JOURNAL-VIEWER_PACKAGE_SECTION "net")
+set(CPACK_DEBIAN_PLUGIN-JOURNAL-VIEWER_DEPENDS "netdata-plugin-systemd-journal (= ${CPACK_PACKAGE_VERSION})")
+
 #
 # systemd-units.plugin
 #
@@ -627,7 +657,8 @@ if(ENABLE_PLUGIN_SLABINFO)
         list(APPEND CPACK_COMPONENTS_ALL "plugin-slabinfo")
 endif()
 if(ENABLE_PLUGIN_SYSTEMD_JOURNAL)
-        list(APPEND CPACK_COMPONENTS_ALL "plugin-systemd-journal")
+  list(APPEND CPACK_COMPONENTS_ALL "plugin-journal-viewer")
+  list(APPEND CPACK_COMPONENTS_ALL "plugin-systemd-journal")
 endif()
 if(ENABLE_PLUGIN_SYSTEMD_UNITS)
   list(APPEND CPACK_COMPONENTS_ALL "plugin-systemd-units")
@@ -637,6 +668,9 @@ if(ENABLE_PLUGIN_XENSTAT)
 endif()
 if(ENABLE_PLUGIN_OTEL)
         list(APPEND CPACK_COMPONENTS_ALL "plugin-otel")
+endif()
+if(ENABLE_PLUGIN_OTEL_SIGNAL_VIEWER)
+        list(APPEND CPACK_COMPONENTS_ALL "plugin-otel-signal-viewer")
 endif()
 
 include(CPack)
